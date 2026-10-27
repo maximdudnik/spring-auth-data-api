@@ -1,0 +1,13 @@
+server:
+  port: 8081
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+app:
+  internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+
+logging:
+  level:
+    root: INFO

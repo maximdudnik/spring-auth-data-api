@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  data-api:
+    build: ./data-api
+    ports:
+      - "8081:8081"
+    environment:
+      INTERNAL_TOKEN: dev-internal-token
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8081'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 40s
+
+  auth-api:
+    build: ./auth-api
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/appdb
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      JWT_SECRET: dev-jwt-secret-change-me-please-32b
+      INTERNAL_TOKEN: dev-internal-token
+      DATA_API_URL: http://data-api:8081
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data-api:
+        condition: service_healthy
+
+networks:
+  appnet:
+
+volumes:
+  pgdata:
